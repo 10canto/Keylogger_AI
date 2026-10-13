@@ -53,8 +53,18 @@ logger = logging.getLogger(__name__)
 
 BUFFER_MAXLEN_KB        = 10_000         # circular buffer size for keystrokes
 BUFFER_MAXLEN_MOUSE     = 50_000         # circular buffer size for mouse events
-MIN_TRAINING_KS         = 2_000          # keystrokes needed for baseline
-MIN_TRAINING_MOUSE      = 3_000          # mouse movements needed for baseline
+
+# Two-tier baseline strategy:
+# - UI_UNLOCK threshold: minimum samples to unlock app and enable monitoring (fast demo experience)
+# - FULL_BASELINE threshold: continue collecting silently in background for full statistical confidence
+# Environment variables allow demo-mode override while keeping production-quality data collection.
+UI_UNLOCK_KS            = int(os.environ.get("KGAI_BASELINE_KEYSTROKES", "120"))
+UI_UNLOCK_MOUSE         = int(os.environ.get("KGAI_BASELINE_MOUSE", "200"))
+FULL_BASELINE_KS        = 2000      # Continue collecting to this threshold silently
+FULL_BASELINE_MOUSE     = 3000      # Continue collecting to this threshold silently
+MIN_TRAINING_KS         = UI_UNLOCK_KS          # Used for is_training_complete checks (UI unlock)
+MIN_TRAINING_MOUSE      = UI_UNLOCK_MOUSE       # Used for is_training_complete checks (UI unlock)
+
 ANALYSIS_WINDOW_SECS    = 60             # seconds per analysis cycle
 MIN_KS_FOR_ANALYSIS     = 5              # minimum keystrokes needed to analyse (LOWERED FOR FASTER COLLECTION)
 MIN_MOUSE_FOR_ANALYSIS  = 5              # minimum mouse movements to analyse (LOWERED FOR FASTER COLLECTION)
@@ -1284,7 +1294,12 @@ class MultiModalBaselineLearner:
             self._mouse_samples.append(m)
 
     def is_training_complete(self, total_ks: int, total_mouse: int) -> bool:
-        return total_ks >= self._min_ks and (total_mouse >= self._min_mouse or total_mouse >= 5000)
+        """Check if minimum UI unlock threshold is met (120/200 by default)."""
+        return total_ks >= self._min_ks and total_mouse >= self._min_mouse
+
+    def is_full_baseline_complete(self, total_ks: int, total_mouse: int) -> bool:
+        """Check if full statistical baseline threshold is met (2000/3000)."""
+        return total_ks >= FULL_BASELINE_KS and total_mouse >= FULL_BASELINE_MOUSE
 
     def compute_and_save_baselines(self, total_ks: int, total_mouse: int) -> Tuple[TypingBaseline, MouseBaseline]:
         now_iso = datetime.now().isoformat()
@@ -1375,6 +1390,7 @@ class MultiModalBaselineLearner:
     def is_baseline_available(self) -> bool:
         return (
             self._kb_baseline is not None and self._kb_baseline.is_complete()
+            and self._mouse_baseline is not None and self._mouse_baseline.is_complete()
         )
 
     def delete_baselines(self) -> None:
