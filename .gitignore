@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.env
+.env.local
+.env.*.local
+venv/
+.venv/
+
+# Project runtime files
+logs/
+quarantine/
+models/*.joblib
+data/whitelist.json
+
+# Behavior CSV files (personal data - DO NOT COMMIT)
+data/*.csv
+data/my_behavior_*.csv
+data/comparison_*.json
+
+# Behavioral analysis data (personal biometrics)
+data/keyboard_*.json
+data/mouse_*.json
+data/behavioral_*.json
+data/typing_*.json
+
+# ALLOW these example/template files
+!data/example_baseline.json
+!data/my_behavior.json
+
+# SQLite databases
+*.db
+*.db-wal
+*.db-shm
+
+# Build artifacts
+dist/
+build/
+*.spec.bak
+*.exe
+
+# PyInstaller
+*.manifest
+*.spec.bak
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
